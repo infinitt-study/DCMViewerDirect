@@ -184,6 +184,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ClassView.h" />
+    <ClInclude Include="DataElement.h" />
     <ClInclude Include="DCMViewer.h" />
     <ClInclude Include="DCMViewerDoc.h" />
     <ClInclude Include="DCMViewerView.h" />
@@ -199,6 +200,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ClassView.cpp" />
+    <ClCompile Include="DataElement.cpp" />
     <ClCompile Include="DCMViewer.cpp" />
     <ClCompile Include="DCMViewerDoc.cpp" />
     <ClCompile Include="DCMViewerView.cpp" />

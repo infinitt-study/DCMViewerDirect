@@ -77,24 +77,27 @@ BOOL CDCMViewerDoc::OnNewDocument()
 		file.Seek(128, CFile::begin);
 		int32_t dicmTag = 0;
 		short tr;
-		short size;
-		long value;
+		short vr;
 
 		file.Read(&dicmTag, sizeof(dicmTag));
 		if (dicmTag == 0x4d434944) {
 			TRACE("DICOM File Format Success\n");
 		}
 		
-		for (int i = 0; i < 1;i++) {
+		for (int i = 0; i < 6; i++) {
 			file.Read(&dicmTag, sizeof(dicmTag));
 			if (dicmTag == 0x00000002) {
 				file.Read(&tr, sizeof(tr));
 
 				switch (tr) {
 				case TR_UL:
-					file.Read(&size, sizeof(size));
-					file.Read(&value, sizeof(value));
-					TRACE("DICOM TR_UL = [%d]\n", value);
+					{
+						file.Read(&vr, sizeof(vr));
+						vector<char> array(vr);
+						file.Read(array.data(), vr);
+						long* value = (long*)array.data();
+						TRACE("DICOM TR_UL = [%d]\n", *value);
+					}
 					break;
 				}
 			}
@@ -103,13 +106,58 @@ BOOL CDCMViewerDoc::OnNewDocument()
 
 				switch (tr) {
 				case TR_OB:
-					file.Read(&size, sizeof(size));
-					vector<char> array(size+1);
+				{
+					short vr;
 
-					file.Read(array.data(), size);
-					TRACE("DICOM TR_OB = size %d\n", value);
-					TRACE("DICOM TR_OB = [%d]\n", value);
+					file.Read(&vr, sizeof(vr));
+					if (vr == 0) {
+						file.Seek(2, CFile::current);
+					}
+					else {
+						file.Seek(vr, CFile::current);
+					}
+					file.Read(&vr, sizeof(vr));
+					vector<char> array(vr);
+
+					file.Read(array.data(), vr);
+					TRACE("DICOM TR_OB = size %d\n", vr);
+					TRACE("DICOM TR_OB = [%d]\n", array[0]);
+				}
 					break;
+				}
+			}
+			else if (dicmTag == 0x00020002) {
+				file.Read(&tr, sizeof(tr));
+
+				switch (tr) {
+				case TR_UI:
+				{
+					short vr;
+					file.Read(&vr, sizeof(vr));
+					vector<char> array(vr);
+
+					file.Read(array.data(), vr);
+					TRACE("DICOM TR_UI = size %d\n", vr);
+					TRACE("DICOM TR_UI = [%d]\n", array[0]);
+				}
+				break;
+				}
+			}
+			else if (dicmTag == 0x00030002) {
+				file.Read(&tr, sizeof(tr));
+
+				switch (tr) {
+				case TR_UI:
+				{
+					short vr;
+					file.Read(&vr, sizeof(vr));
+					vector<char> array(vr);
+
+					file.Read(array.data(), vr);
+					TRACE("DICOM TR_UI = size %d\n", vr);
+					TRACE("DICOM TR_UI = [%d]\n", array[0]);
+				}
+				break;
 				}
 			}
 		}
