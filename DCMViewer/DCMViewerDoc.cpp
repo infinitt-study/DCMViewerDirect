@@ -11,6 +11,7 @@
 #endif
 
 #include "DCMViewerDoc.h"
+#include "DataElement.h"
 
 #include <propkey.h>
 #include <vector>
@@ -40,52 +41,27 @@ CDCMViewerDoc::~CDCMViewerDoc()
 {
 }
 
-#define TR_OW	0x574f
-#define TR_AS	0x5341
-#define TR_PN	0x4e50
-#define TR_AT	0x5441
-#define TR_SH	0x4853
-#define TR_CS	0x5343
-#define TR_SL	0x4c53
-#define TR_DS	0x5344
-#define TR_SQ	0x5153
-#define TR_DA	0x4144
-#define TR_SS	0x5353
-#define TR_DT	0x5444
-#define TR_ST	0x5453
-#define TR_FL	0x4c46
-#define TR_TM	0x4d54
-#define TR_FD	0x4446
-#define TR_UI	0x4955
-#define TR_IS	0x5349
-#define TR_UL   0x4c55
-#define TR_LO	0x4f4c
-#define TR_UN	0x4e55
-#define TR_LT	0x544c
-#define TR_US	0x5355
-#define TR_OB	0x424f
+
 
 BOOL CDCMViewerDoc::OnNewDocument()
 {
 	if (!CDocument::OnNewDocument())
 		return FALSE;
 
+	std::vector<DataElementPtr> dataElements;
 	CFile file;
-	LPCTSTR lpszPathName = _T("dcm-file\\MRBRAIN.DCM");
+	LPCTSTR lpszPathName = _T("D:\\dicom-image-sample\\MRBRAIN.DCM");
 	if (file.Open(lpszPathName, CFile::modeRead | CFile::typeBinary)) {
 		
 		file.Seek(128, CFile::begin);
 		int32_t dicmTag = 0;
-		short tr;
-		short size;
-		long value;
 
 		file.Read(&dicmTag, sizeof(dicmTag));
 		if (dicmTag == 0x4d434944) {
 			TRACE("DICOM File Format Success\n");
 		}
 		
-		for (int i = 0; i < 2;i++) {
+		for (int i = 0; i < 1;i++) {
 			file.Read(&dicmTag, sizeof(dicmTag));
 			if (dicmTag == 0x00000002) {
 				file.Read(&tr, sizeof(tr));
@@ -103,26 +79,12 @@ BOOL CDCMViewerDoc::OnNewDocument()
 
 				switch (tr) {
 				case TR_OB:
-				{
-					short vr_lo, vr_hi;
-					file.Read(&vr_lo, sizeof(vr_lo));
-					file.Read(&vr_hi, sizeof(vr_hi));
-					if (vr_lo == 0) {
-						//2byte skip 
-						file.Seek(2, CFile::current);
-					}
-					else {
-						file.Seek(vr_lo, CFile::current);
-					}
+					file.Read(&size, sizeof(size));
+					vector<char> array(size+1);
 
-					vector<char> array(vr_hi);
-
-					file.Read(array.data(), vr_hi);
-					TRACE("DICOM TR_OB = size %d\n", vr_hi);
-					for (const auto& contents : array) {
-						TRACE("DICOM TR_OB = [%x]\n", contents);
-					}
-				}
+					file.Read(array.data(), size);
+					TRACE("DICOM TR_OB = size %d\n", value);
+					TRACE("DICOM TR_OB = [%d]\n", value);
 					break;
 				}
 			}
