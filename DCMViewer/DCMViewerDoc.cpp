@@ -1,8 +1,4 @@
-﻿
-// DCMViewerDoc.cpp: CDCMViewerDoc 클래스의 구현
-//
-
-#include "pch.h"
+﻿#include "pch.h"
 #include "framework.h"
 // SHARED_HANDLERS는 미리 보기, 축소판 그림 및 검색 필터 처리기를 구현하는 ATL 프로젝트에서 정의할 수 있으며
 // 해당 프로젝트와 문서 코드를 공유하도록 해 줍니다.
@@ -50,43 +46,47 @@ BOOL CDCMViewerDoc::OnNewDocument()
 
 	std::vector<DataElementPtr> dataElements;
 	CFile file;
-	LPCTSTR lpszPathName = _T("D:\\dicom-image-sample\\MRBRAIN.DCM");
+	//LPCTSTR lpszPathName = _T("dcm-file\\MRBRAIN.DCM");
+	//LPCTSTR lpszPathName = _T("dcm-file\\0015.DCM");
+	LPCTSTR lpszPathName = _T("dcm-file\\0004.DCM");
 	if (file.Open(lpszPathName, CFile::modeRead | CFile::typeBinary)) {
-		
+
 		file.Seek(128, CFile::begin);
 		int32_t dicmTag = 0;
 
 		file.Read(&dicmTag, sizeof(dicmTag));
-		if (dicmTag == 0x4d434944) {
-			TRACE("DICOM File Format Success\n");
+		if (dicmTag != 0x4d434944) {
+			TRACE("NOT DICOM File Format Error\n");
+			return FALSE;
 		}
-		
-		for (int i = 0; i < 1;i++) {
-			file.Read(&dicmTag, sizeof(dicmTag));
-			if (dicmTag == 0x00000002) {
-				file.Read(&tr, sizeof(tr));
+		TRACE("DICOM File Format Success\n");
 
-				switch (tr) {
-				case TR_UL:
-					file.Read(&size, sizeof(size));
-					file.Read(&value, sizeof(value));
-					TRACE("DICOM TR_UL = [%d]\n", value);
-					break;
-				}
+		//for (int i = 0; i < 85; i++) { //MRBRAIN.DCM
+		//for (int i = 0; i < 76; i++) { //0015.dcm
+		for (int i = 0; i < 114; i++) { //0004.dcm
+			UINT readCount = file.Read(&dicmTag, sizeof(dicmTag));
+			if (sizeof(dicmTag) != readCount) {
+				TRACE("file read error : tag read\n");
+				return FALSE;
 			}
-			else if (dicmTag == 0x00010002) {
-				file.Read(&tr, sizeof(tr));
+			switch (0xffff & dicmTag) {
+			case 0xffff: //0xffffffff
+				break;
+			case 0x0000: //0x00000000 
+				break;
+			case 0xfffe: //
+				dataElements.push_back(make_shared<DataElement>(dicmTag));
+				break;
+			default:
+				{
+					DataElementPtr pDataElement = make_shared<DataElement>(dicmTag);
+					if (false == pDataElement->Load(file)) {
+						return FALSE;
+					}
 
-				switch (tr) {
-				case TR_OB:
-					file.Read(&size, sizeof(size));
-					vector<char> array(size+1);
-
-					file.Read(array.data(), size);
-					TRACE("DICOM TR_OB = size %d\n", value);
-					TRACE("DICOM TR_OB = [%d]\n", value);
-					break;
+					dataElements.push_back(pDataElement);
 				}
+				break;
 			}
 		}
 
@@ -96,7 +96,11 @@ BOOL CDCMViewerDoc::OnNewDocument()
 	return TRUE;
 }
 
+
+
+
 // CDCMViewerDoc serialization
+
 void CDCMViewerDoc::Serialize(CArchive& ar)
 {
 	if (ar.IsStoring())
@@ -120,7 +124,7 @@ void CDCMViewerDoc::OnDrawThumbnail(CDC& dc, LPRECT lprcBounds)
 	CString strText = _T("TODO: implement thumbnail drawing here");
 	LOGFONT lf;
 
-	CFont* pDefaultGUIFont = CFont::FromHandle((HFONT) GetStockObject(DEFAULT_GUI_FONT));
+	CFont* pDefaultGUIFont = CFont::FromHandle((HFONT)GetStockObject(DEFAULT_GUI_FONT));
 	pDefaultGUIFont->GetLogFont(&lf);
 	lf.lfHeight = 36;
 
@@ -151,7 +155,7 @@ void CDCMViewerDoc::SetSearchContent(const CString& value)
 	}
 	else
 	{
-		CMFCFilterChunkValueImpl *pChunk = nullptr;
+		CMFCFilterChunkValueImpl* pChunk = nullptr;
 		ATLTRY(pChunk = new CMFCFilterChunkValueImpl);
 		if (pChunk != nullptr)
 		{
