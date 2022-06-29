@@ -11,6 +11,7 @@
 #endif
 
 #include "DCMViewerDoc.h"
+#include "DataElement.h"
 
 #include <propkey.h>
 #include <vector>
@@ -40,126 +41,45 @@ CDCMViewerDoc::~CDCMViewerDoc()
 {
 }
 
-#define TR_OW	0x574f
-#define TR_AS	0x5341
-#define TR_PN	0x4e50
-#define TR_AT	0x5441
-#define TR_SH	0x4853
-#define TR_CS	0x5343
-#define TR_SL	0x4c53
-#define TR_DS	0x5344
-#define TR_SQ	0x5153
-#define TR_DA	0x4144
-#define TR_SS	0x5353
-#define TR_DT	0x5444
-#define TR_ST	0x5453
-#define TR_FL	0x4c46
-#define TR_TM	0x4d54
-#define TR_FD	0x4446
-#define TR_UI	0x4955
-#define TR_IS	0x5349
-#define TR_UL   0x4c55
-#define TR_LO	0x4f4c
-#define TR_UN	0x4e55
-#define TR_LT	0x544c
-#define TR_US	0x5355
-#define TR_OB	0x424f
+
 
 BOOL CDCMViewerDoc::OnNewDocument()
 {
 	if (!CDocument::OnNewDocument())
 		return FALSE;
 
+	std::vector<DataElementPtr> dataElements;
 	CFile file;
-	LPCTSTR lpszPathName = _T("D:\\dicom-image-sample\\MRBRAIN.DCM");
+	//LPCTSTR lpszPathName = _T("D:\\dicom-image-sample\\MRBRAIN.DCM");
+	//LPCTSTR lpszPathName = _T("D:\\dicom-image-sample\\0015.DCM");
+	LPCTSTR lpszPathName = _T("D:\\dicom-image-sample\\0004.DCM");
 	if (file.Open(lpszPathName, CFile::modeRead | CFile::typeBinary)) {
 		
 		file.Seek(128, CFile::begin);
 		int32_t dicmTag = 0;
-		short tr;
-		short vr;
 
 		file.Read(&dicmTag, sizeof(dicmTag));
-		if (dicmTag == 0x4d434944) {
-			TRACE("DICOM File Format Success\n");
+		if (dicmTag != 0x4d434944) {
+			TRACE("NOT DICOM File Format Error\n");
+			return FALSE;
 		}
-		
-		for (int i = 0; i < 6; i++) {
-			file.Read(&dicmTag, sizeof(dicmTag));
-			if (dicmTag == 0x00000002) {
-				file.Read(&tr, sizeof(tr));
+		TRACE("DICOM File Format Success\n");
 
-				switch (tr) {
-				case TR_UL:
-					{
-						file.Read(&vr, sizeof(vr));
-						vector<char> array(vr);
-						file.Read(array.data(), vr);
-						long* value = (long*)array.data();
-						TRACE("DICOM TR_UL = [%d]\n", *value);
-					}
-					break;
-				}
+		//for (int i = 0; i < 85; i++) { //MRBRAIN.DCM
+		//for (int i = 0; i < 76; i++) { //0015.dcm
+		for (int i = 0; i < 30; i++) { //0004.dcm
+			UINT readCount = file.Read(&dicmTag, sizeof(dicmTag));
+			if (sizeof(dicmTag) != readCount) {
+				TRACE("file read error : tag read\n");
+				return FALSE;
 			}
-			else if (dicmTag == 0x00010002) {
-				file.Read(&tr, sizeof(tr));
 
-				switch (tr) {
-				case TR_OB:
-				{
-					short vr;
-
-					file.Read(&vr, sizeof(vr));
-					if (vr == 0) {
-						file.Seek(2, CFile::current);
-					}
-					else {
-						file.Seek(vr, CFile::current);
-					}
-					file.Read(&vr, sizeof(vr));
-					vector<char> array(vr);
-
-					file.Read(array.data(), vr);
-					TRACE("DICOM TR_OB = size %d\n", vr);
-					TRACE("DICOM TR_OB = [%d]\n", array[0]);
-				}
-					break;
-				}
+			DataElementPtr pDataElement = make_shared<DataElement>(dicmTag);
+			if (false == pDataElement->Load(file)) {
+				return FALSE;
 			}
-			else if (dicmTag == 0x00020002) {
-				file.Read(&tr, sizeof(tr));
 
-				switch (tr) {
-				case TR_UI:
-				{
-					short vr;
-					file.Read(&vr, sizeof(vr));
-					vector<char> array(vr);
-
-					file.Read(array.data(), vr);
-					TRACE("DICOM TR_UI = size %d\n", vr);
-					TRACE("DICOM TR_UI = [%d]\n", array[0]);
-				}
-				break;
-				}
-			}
-			else if (dicmTag == 0x00030002) {
-				file.Read(&tr, sizeof(tr));
-
-				switch (tr) {
-				case TR_UI:
-				{
-					short vr;
-					file.Read(&vr, sizeof(vr));
-					vector<char> array(vr);
-
-					file.Read(array.data(), vr);
-					TRACE("DICOM TR_UI = size %d\n", vr);
-					TRACE("DICOM TR_UI = [%d]\n", array[0]);
-				}
-				break;
-				}
-			}
+			dataElements.push_back(pDataElement);
 		}
 
 		file.Close();
