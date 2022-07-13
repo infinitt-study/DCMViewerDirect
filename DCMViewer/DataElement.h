@@ -47,9 +47,9 @@ struct DataElement {
 	std::vector<char> _imageArray;
 
 	DataElement(__int32 dicomTag) : _dicomTag{ dicomTag },
-		_tr(DataElementTR::TR_EMPTY),
+		_tr{ DataElementTR::TR_EMPTY },
 		_vr{ 0 },
-		_dataArray(0)
+		_dataArray{ 0 }
 	{
 
 	}
