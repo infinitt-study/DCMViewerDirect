@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "DataElement.h"
+
 
 class CDCMViewerDoc : public CDocument
 {
@@ -14,7 +16,7 @@ protected: // serialization에서만 만들어집니다.
 
 // 특성입니다.
 public:
-
+	DataElementPtr m_pDataElement;
 // 작업입니다.
 public:
 

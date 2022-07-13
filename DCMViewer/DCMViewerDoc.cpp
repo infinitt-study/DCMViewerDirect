@@ -46,13 +46,17 @@ BOOL CDCMViewerDoc::OnNewDocument()
 
 	std::vector<DataElementPtr> dataElements;
 	CFile file;
+
+	//LPCTSTR lpszPathName = _T("C:\\Users\\r2com\\Documents\\카카오톡 받은 파일\\image\\19665.dcm");
 	//LPCTSTR lpszPathName = _T("dcm-file\\MRBRAIN.DCM");
-	//LPCTSTR lpszPathName = _T("dcm-file\\0015.DCM");
-	LPCTSTR lpszPathName = _T("dcm-file\\0004.DCM");
+	LPCTSTR lpszPathName = _T("dcm-file\\0015.DCM");
+	//LPCTSTR lpszPathName = _T("dcm-file\\0004.DCM");
 	if (file.Open(lpszPathName, CFile::modeRead | CFile::typeBinary)) {
 
 		file.Seek(128, CFile::begin);
-		int32_t dicmTag = 0;
+//		int32_t dicmTag = 0;
+//		__int32 dicmTag = 0;
+		int  dicmTag = 0;
 
 		file.Read(&dicmTag, sizeof(dicmTag));
 		if (dicmTag != 0x4d434944) {
@@ -61,13 +65,13 @@ BOOL CDCMViewerDoc::OnNewDocument()
 		}
 		TRACE("DICOM File Format Success\n");
 
-		//for (int i = 0; i < 85; i++) { //MRBRAIN.DCM
+		for (;;) { //MRBRAIN.DCM
 		//for (int i = 0; i < 76; i++) { //0015.dcm
-		for (int i = 0; i < 114; i++) { //0004.dcm
+		//for (int i = 0; i < 114; i++) { //0004.dcm
 			UINT readCount = file.Read(&dicmTag, sizeof(dicmTag));
 			if (sizeof(dicmTag) != readCount) {
 				TRACE("file read error : tag read\n");
-				return FALSE;
+				break;
 			}
 			switch (0xffff & dicmTag) {
 			case 0xffff: //0xffffffff
@@ -81,13 +85,19 @@ BOOL CDCMViewerDoc::OnNewDocument()
 				{
 					DataElementPtr pDataElement = make_shared<DataElement>(dicmTag);
 					if (false == pDataElement->Load(file)) {
-						return FALSE;
+						break;
 					}
 
 					dataElements.push_back(pDataElement);
 				}
 				break;
 			}
+		}
+
+		//마지막 위치에 있는 객체는 이미지 객체 
+		m_pDataElement = dataElements[dataElements.size()-1];
+		for (const auto& pDataElement : dataElements) {
+			pDataElement->display();
 		}
 
 		file.Close();

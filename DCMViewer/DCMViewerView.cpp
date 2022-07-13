@@ -54,14 +54,38 @@ BOOL CDCMViewerView::PreCreateWindow(CREATESTRUCT& cs)
 
 // CDCMViewerView 그리기
 
-void CDCMViewerView::OnDraw(CDC* /*pDC*/)
+void CDCMViewerView::OnDraw(CDC* pDC)
 {
 	CDCMViewerDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 	if (!pDoc)
 		return;
 
-	// TODO: 여기에 원시 데이터에 대한 그리기 코드를 추가합니다.
+	if (pDoc->m_pDataElement == nullptr) return;
+
+	void* lpvBits = pDoc->m_pDataElement->getImageData();
+	{
+		std::shared_ptr<BITMAPINFO> pBitmapInfo((BITMAPINFO*)malloc(sizeof(BITMAPINFO)));
+		if (pBitmapInfo) {
+			pBitmapInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+			pBitmapInfo->bmiHeader.biWidth = 1024;
+			pBitmapInfo->bmiHeader.biHeight = -1024;
+			pBitmapInfo->bmiHeader.biPlanes = 1;
+			pBitmapInfo->bmiHeader.biBitCount = 24;
+			pBitmapInfo->bmiHeader.biCompression = BI_RGB;
+			pBitmapInfo->bmiHeader.biSizeImage = 0;
+			pBitmapInfo->bmiHeader.biClrImportant = 0;
+			pBitmapInfo->bmiHeader.biClrUsed = 0;
+			pBitmapInfo->bmiHeader.biXPelsPerMeter = 0;
+			pBitmapInfo->bmiHeader.biYPelsPerMeter = 0;
+
+			SetDIBitsToDevice(pDC->m_hDC,
+				0, 30, 1024, 1024,
+				0, 0, 0, 1024,
+				lpvBits, pBitmapInfo.get(), DIB_RGB_COLORS);  // SetDIBitsToDevice 를 이용해 윈도우에 영상 전 시
+		}
+	}
+
 }
 
 

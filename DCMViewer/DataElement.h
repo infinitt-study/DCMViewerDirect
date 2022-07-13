@@ -1,10 +1,5 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <memory>
-#include <stdexcept>
-
 enum class DataElementTR : int16_t {
 	  TR_EMPTY = 0x0000
 	, TR_AE = 0x4541
@@ -38,7 +33,10 @@ struct DataElement;
 using DataElementPtr = std::shared_ptr<DataElement>;
 
 struct DataElement {
-	__int32 _dicomTag;
+	union {
+		__int32 _tag32;
+		__int16 _tag16[2];
+	} _dicomTag;
 	DataElementTR _tr;
 	union {
 		__int16 _vr16;
@@ -46,8 +44,9 @@ struct DataElement {
 	} _vr;
 
 	std::vector<char> _dataArray;
+	std::vector<char> _imageArray;
 
-	DataElement(__int32 dicomTag) : _dicomTag(dicomTag) ,
+	DataElement(__int32 dicomTag) : _dicomTag{ dicomTag },
 		_tr(DataElementTR::TR_EMPTY),
 		_vr{ 0 },
 		_dataArray(0)
@@ -76,6 +75,40 @@ struct DataElement {
 		throw std::runtime_error("DataElementTR::TR_OB type xecption ");
 	}
 
+	void* getImageData() {
+		if (_imageArray.size() != 0) {
+			return _imageArray.data();
+		}
+
+		const size_t size = _dataArray.size();
+		_imageArray.resize(size * 3);
+		struct COLOR16 {
+			short r     : 12;
+			short dummy : 4;
+		};
+		struct COLOR24 {
+			BYTE r;
+			BYTE g;
+			BYTE b;
+		};//12 -> 8
+		BYTE* lpSrc  = (BYTE*)_dataArray.data();
+		COLOR24* lpDest = (COLOR24*)_imageArray.data();
+		for (size_t i = 0; i < size; ++i, ++lpSrc, ++lpDest) {
+			//lpDest->r = lpSrc->r >> 4; //0x0123 >> 4  ==> 0x012
+			//lpDest->g = lpSrc->r >> 4;
+			//lpDest->b = lpSrc->r >> 4;
+
+			lpDest->r = *lpSrc; //0x0123 >> 4  ==> 0x023
+			lpDest->g = *lpSrc;
+			lpDest->b = *lpSrc;
+		}
+
+		return _dataArray.data();
+	}
+
+	void display() const { 
+		TRACE("(%04X, %04X)\n", _dicomTag._tag16[0], _dicomTag._tag16[1]);
+	}
 private: 
 	bool readVr(CFile& file) {
 		if (sizeof(_vr._vr16) != file.Read(&_vr._vr16, sizeof(_vr._vr16))) {
